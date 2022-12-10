@@ -1,9 +1,10 @@
 from django.db import transaction
 from drf_extra_fields.fields import Base64ImageField
-from recipe.models import (AmountIngredient, Favorite, Ingredient, Recipe,
-                           ShoppingCart, Tag)
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+
+from recipe.models import (AmountIngredient, Favorite, Ingredient, Recipe,
+                           ShoppingCart, Tag)
 from users.serializers import CustomUserSerializer
 
 
@@ -151,7 +152,6 @@ class AddRecipeSerializer(serializers.ModelSerializer):
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
         recipe.tags.set(tags)
-
         create_ingredient = [
             AmountIngredient(
                 recipe=recipe,
@@ -175,7 +175,6 @@ class AddRecipeSerializer(serializers.ModelSerializer):
             instance.tags.set(tags)
         if ingredients is not None:
             instance.ingredients.clear()
-
             create_ingredient = [
                 AmountIngredient(
                     recipe=instance,

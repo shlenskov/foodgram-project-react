@@ -2,10 +2,6 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-
-from recipe.models import (AmountIngredient, Favorite, Ingredient, Recipe,
-                           ShoppingCart, Tag)
-
 from rest_framework import permissions, status
 from rest_framework.decorators import action
 from rest_framework.filters import SearchFilter
@@ -18,6 +14,8 @@ from .permissions import AuthorOrReadOnly
 from .serializers import (AddRecipeSerializer, FavoriteRecipeSerializer,
                           IngredientSerializer, RecipeSerializer,
                           TagSerializer)
+from recipe.models import (AmountIngredient, Favorite, Ingredient, Recipe,
+                           ShoppingCart, Tag)
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
@@ -60,67 +58,65 @@ class RecipeViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(detail=True, methods=['post'],
-            permission_classes=[IsAuthenticated])
-    def favorite(self, request, pk):
+    def function_post(self, request, pk, model, error_text):
         user = request.user
-        favorite_recipe = Favorite.objects.filter(user=user, recipe_id=pk)
+        model_recipe = model.objects.filter(user=user, recipe_id=pk)
         recipe = get_object_or_404(Recipe, id=pk)
-        if favorite_recipe.exists():
-            return Response({'errors': 'Рецепт уже добавлен в Избранное'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        Favorite.objects.create(user=user, recipe_id=pk)
+        if model_recipe.exists():
+            return Response(
+                {'error': error_text}, status=status.HTTP_400_BAD_REQUEST
+            )
+        model.objects.create(user=user, recipe_id=pk)
         serializer = FavoriteRecipeSerializer(recipe)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
+    def favorite(self, request, pk):
+        error_text = 'Рецепт уже добавлен в Избранное'
+        return self.function_post(request, pk, Favorite, error_text)
+
+    def function_delete(self, request, pk, model, delete_text, error400_text):
+        user = request.user
+        model_recipe = model.objects.filter(user=user, recipe_id=pk)
+        if model_recipe.exists():
+            model_recipe.delete()
+            return Response(delete_text, status=status.HTTP_204_NO_CONTENT)
+        return Response({'error': error400_text},
+                        status=status.HTTP_400_BAD_REQUEST)
+
     @favorite.mapping.delete
     def delete_favorite(self, request, pk):
-        user = request.user
-        favorite_recipe = Favorite.objects.filter(user=user, recipe_id=pk)
-        if favorite_recipe.exists():
-            favorite_recipe.delete()
-            return Response({'errors': 'Рецепт удален из Избранное'},
-                            status=status.HTTP_204_NO_CONTENT)
-        return Response({'errors': 'Рецепта нет в Избранном'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        delete_text = 'Рецепт удален из Избранное'
+        error400_text = 'Рецепта нет в Избранном'
+        return self.function_delete(request, pk, Favorite, delete_text,
+                                    error400_text)
 
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk):
-        user = request.user
-        shopping_cart = ShoppingCart.objects.filter(user=user, recipe_id=pk)
-        recipe = get_object_or_404(Recipe, id=pk)
-        if shopping_cart.exists():
-            return Response(
-                {'errors': 'Рецепт уже добавлен в список покупок'},
-                status=status.HTTP_400_BAD_REQUEST)
-        ShoppingCart.objects.create(user=user, recipe_id=pk)
-        serializer = FavoriteRecipeSerializer(recipe)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        error_text = 'Рецепт уже добавлен в список покупок'
+        return self.function_post(request, pk, ShoppingCart, error_text)
 
     @shopping_cart.mapping.delete
     def delete_shopping_cart(self, request, pk):
-        user = request.user
-        shopping_cart = ShoppingCart.objects.filter(user=user, recipe_id=pk)
-        if shopping_cart.exists():
-            shopping_cart.delete()
-            return Response({'errors': 'Рецепт удален из списка покупок'},
-                            status=status.HTTP_204_NO_CONTENT)
-        return Response({'errors': 'Рецепта нет в списке покупок'},
-                        status=status.HTTP_400_BAD_REQUEST)
+        delete_text = 'Рецепт удален из списка покупок'
+        error400_text = 'Рецепта нет в списке покупок'
+        return self.function_delete(request, pk, Favorite, delete_text,
+                                    error400_text)
 
     @action(detail=False, methods=['get'],
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
-        items = AmountIngredient.objects.select_related('recipe', 'ingredient')
-        if request.user.is_authenticated:
-            items = items.filter(recipe__shopcart__user=request.user)
-        else:
-            items = items.filter(recipe_id_in=request.session['purchases'])
-        annotate_items = items.annotate(total=Sum('amount')).order_by('-total')
+        items = AmountIngredient.objects.filter(
+            recipe__shopcart__user=request.user
+        )
+        annotate_items = items.values(
+            'ingredient__name', 'ingredient__measurement_unit'
+        ).annotate(total=Sum('amount')).order_by('-total')
         text = '\n'.join([
-            f"{item.ingredient.name} ({item.ingredient.measurement_unit}) "
-            f"- {item.total}"
+            f"{item['ingredient__name']} "
+            f"({item['ingredient__measurement_unit']}) - {item['total']}"
             for item in annotate_items
         ])
         filename = "shopping_cart.txt"
