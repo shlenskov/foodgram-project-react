@@ -10,8 +10,8 @@ services:
       - ./.env
     container_name: foodgram_db
 
-  backend:
-    build: .
+  web:
+    image: shlenskovvv/foodgram:latest
     restart: always
     volumes:
       - static_value:/app/backend_static/
@@ -32,15 +32,13 @@ services:
       - media_value:/var/html/media/
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-    restart: always
+#    restart: always
     depends_on:
-      - backend
+      - web
     container_name: foodgram_nginx
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: shlenskovvv/frontgram:latest
     volumes:
       - ../frontend/:/app/result_build/
 
