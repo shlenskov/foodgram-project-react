@@ -1,4 +1,4 @@
-![example workflow](https://github.com/shlenskov/yamdb_final/actions/workflows/foodgram_workflow.yml/badge.svg)
+![example workflow](https://github.com/shlenskov/foodgram-project-react/actions/workflows/foodgram_workflow.yml/badge.svg)
 
 ## Foodgram - сайт «Продуктовый помощник»
 
