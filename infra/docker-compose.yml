@@ -11,9 +11,7 @@ services:
     container_name: foodgram_db
 
   web:
-    build:
-      context: ../backend/foodgram
-      dockerfile: Dockerfile
+    image: shlenskovvv/foodgram:latest
     restart: always
     volumes:
       - static_value:/app/backend_static/
@@ -30,19 +28,16 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - static_value:/var/html/static/
-      - media_value:/var/html/media/
+      - static_value:/var/html/backend_static/
+      - media_value:/var/html/backend_media/
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-#    restart: always
     depends_on:
       - web
     container_name: foodgram_nginx
 
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: shlenskovvv/frontgram:latest
     volumes:
       - ../frontend/:/app/result_build/
 
