@@ -75,11 +75,7 @@ docker-compose exec web python manage.py migrate
 
 Запуск загрузки ингредиентов:
 
-docker-compose exec backend python manage.py load_ingrs
-
-Запуск загрузки загрузки тегов:
-
-docker-compose exec backend python manage.py load_tags
+docker-compose exec backend python manage.py loaddata ingredients.json
 
 Создание суперпользователя:
 
