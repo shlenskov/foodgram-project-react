@@ -33,7 +33,7 @@ services:
       - static_value:/var/html/backend_static/
       - media_value:/var/html/backend_media/
       - ../frontend/build:/usr/share/nginx/html/
-      - ../docs:/usr/share/nginx/html/api/docs/
+      - ../docs/:/usr/share/nginx/html/api/docs/
     depends_on:
       - web
     container_name: foodgram_nginx
