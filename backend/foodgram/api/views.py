@@ -79,6 +79,7 @@ class RecipeViewSet(ModelViewSet):
         author = self.request.query_params.get('author', None)
         if author:
             queryset = queryset.filter(author=author)
+
         return queryset
 
     def function_post(self, request, pk, model, error_text):
