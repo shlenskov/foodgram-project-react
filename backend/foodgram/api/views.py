@@ -22,12 +22,19 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     """
     Вьюсет для работы с ингредиентами.
     """
-    queryset = Ingredient.objects.all()
+    # queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = [AllowAny]
     pagination_class = None
     filter_backends = [SearchFilter]
     search_fields = ('^name',)
+
+    def get_queryset(self):
+        queryset = Ingredient.objects
+        name = self.request.query_params.get('name')
+        if name:
+            queryset = queryset.filter(name__isstartswith=name)
+        return queryset.all()
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -57,6 +64,22 @@ class RecipeViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
+
+    def get_queryset(self):
+        tags = self.request.query_params.getlist('tags')
+        user = self.request.user
+        queryset = Recipe.objects
+        if tags:
+            queryset = queryset.filter_by_tags(tags)
+        queryset = queryset.add_user_annotations(user.pk)
+        if self.request.query_params.get('is_favorited'):
+            queryset = queryset.filter(is_favorited=True)
+        if self.request.query_params.get('is_in_shopping_cart'):
+            queryset = queryset.filter(is_in_shopping_cart=True)
+        author = self.request.query_params.get('author', None)
+        if author:
+            queryset = queryset.filter(author=author)
+        return queryset
 
     def function_post(self, request, pk, model, error_text):
         user = request.user

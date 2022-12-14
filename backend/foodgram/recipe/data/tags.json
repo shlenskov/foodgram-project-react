@@ -1,0 +1,8 @@
+[
+  {"name": "завтрак", "color": "#FFFACD", "slug": "breakfast"},
+  {"name": "десерт", "color": "#FF1493", "slug": "dessert"},
+  {"name": "ланч", "color": "#FFD700", "slug": "lunch"},
+  {"name": "fitness", "color": "#40E0D0", "slug": "fitness"},
+  {"name": "vegan", "color": "#00FF00", "slug": "vegan"},
+  {"name": "ужин", "color": "#FF4500", "slug": "dinner"}
+]
