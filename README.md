@@ -2,6 +2,8 @@
 
 ## Foodgram - сайт «Продуктовый помощник»
 
+Доступен по ссылке: http://158.160.19.9/
+
 На этом сервисе пользователи могут публиковать рецепты, подписываться на публикации других пользователей, добавлять понравившиеся рецепты в список «Избранное», а перед походом в магазин скачивать сводный список продуктов, необходимых для приготовления одного или нескольких выбранных блюд.
 
 ### Технологии
@@ -73,10 +75,6 @@ docker-compose up -d --build
 
 docker-compose exec web python manage.py migrate
 
-Запуск загрузки ингредиентов:
-
-docker-compose exec backend python manage.py loaddata ingredients.json
-
 Создание суперпользователя:
 
 docker-compose exec web python manage.py createsuperuser
@@ -85,7 +83,7 @@ docker-compose exec web python manage.py createsuperuser
 
 docker-compose exec web python manage.py collectstatic --no-input
 
-Зайдите на сайт по ссылке: http://.....
+Зайдите на сайт по ссылке: http://158.160.19.9/
 
 Создание дампа (резервную копию) базы данных:
 
