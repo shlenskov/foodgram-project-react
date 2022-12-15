@@ -1,7 +1,10 @@
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import (BooleanFilter, DjangoFilterBackend,
+                                           FilterSet,
+                                           ModelMultipleChoiceFilter,
+                                           NumberFilter)
 from recipe.models import (AmountIngredient, Favorite, Ingredient, Recipe,
                            ShoppingCart, Tag)
 from rest_framework import permissions, status
@@ -18,23 +21,39 @@ from .serializers import (AddRecipeSerializer, FavoriteRecipeSerializer,
                           TagSerializer)
 
 
+class SearchIngredients(SearchFilter):
+    search_param = 'name'
+
+
+class RecipeFilters(FilterSet):
+    is_favorited = BooleanFilter(method='get_is_favorited')
+    is_in_shopping_cart = BooleanFilter(method='get_is_in_shopping_cart')
+    author = NumberFilter()
+    tags = ModelMultipleChoiceFilter(field_name='tags__slug',
+                                     queryset=Tag.objects.all(),
+                                     to_field_name='slug')
+
+    def get_is_favorited(self, queryset, name, value):
+        if value:
+            return queryset.filter(favorites__user=self.request.user)
+        return queryset
+
+    def get_is_in_shopping_cart(self, queryset, name, value):
+        if value:
+            return queryset.filter(shopcart__user=self.request.user)
+        return queryset
+
+
 class IngredientViewSet(ReadOnlyModelViewSet):
     """
     Вьюсет для работы с ингредиентами.
     """
-    # queryset = Ingredient.objects.all()
+    queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = [AllowAny]
     pagination_class = None
-    filter_backends = [SearchFilter]
+    filter_backends = [SearchIngredients]
     search_fields = ('^name',)
-
-    def get_queryset(self):
-        queryset = Ingredient.objects
-        name = self.request.query_params.get('name')
-        if name:
-            queryset = queryset.filter(name__isstartswith=name)
-        return queryset.all()
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -54,7 +73,7 @@ class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = [AuthorOrReadOnly]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ('tags', 'author')
+    filterset_class = RecipeFilters
     pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
@@ -64,23 +83,6 @@ class RecipeViewSet(ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
-
-    def get_queryset(self):
-        tags = self.request.query_params.getlist('tags')
-        user = self.request.user
-        queryset = Recipe.objects
-        if tags:
-            queryset = queryset.filter_by_tags(tags)
-        queryset = queryset.add_user_annotations(user.pk)
-        if self.request.query_params.get('is_favorited'):
-            queryset = queryset.filter(is_favorited=True)
-        if self.request.query_params.get('is_in_shopping_cart'):
-            queryset = queryset.filter(is_in_shopping_cart=True)
-        author = self.request.query_params.get('author', None)
-        if author:
-            queryset = queryset.filter(author=author)
-
-        return queryset
 
     def function_post(self, request, pk, model, error_text):
         user = request.user
@@ -126,7 +128,7 @@ class RecipeViewSet(ModelViewSet):
     def delete_shopping_cart(self, request, pk):
         delete_text = 'Рецепт удален из списка покупок'
         error400_text = 'Рецепта нет в списке покупок'
-        return self.function_delete(request, pk, Favorite, delete_text,
+        return self.function_delete(request, pk, ShoppingCart, delete_text,
                                     error400_text)
 
     @action(detail=False, methods=['get'],
